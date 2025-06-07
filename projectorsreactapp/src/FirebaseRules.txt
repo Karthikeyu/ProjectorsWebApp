@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if the request is from your admin
+    function isAdmin() {
+      return request.auth.uid == 'lYDbdoogC6WWLEV7rVS86MBdW353'; // <<< PASTE UID HERE AGAIN
+    }
+
+    // Public data (projectors, site settings)
+    match /artifacts/{appId}/public/data/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin(); // Only admin can write
+    }
+
+    // Inquiries (example: only admin can read/write all inquiries)
+    // If inquiries are stored per user (as currently in getInquiriesCollectionPath), adjust accordingly
+    // This rule assumes inquiries are in a common admin path if you want only admin to access all.
+    // For your current path: /artifacts/{appId}/users/{userId}/inquiries
+    // To allow admin to read any user's inquiries and users to write their own:
+    match /artifacts/{appId}/users/{userId}/inquiries/{inquiryId} {
+       allow read: if isAdmin() || request.auth.uid == userId;
+       allow create: if request.auth != null; // Any authenticated user can create an inquiry for themselves
+       allow update, delete: if isAdmin(); // Only admin can modify/delete inquiries
+    }
+    // If you want ONLY admin to access inquiries at all (e.g., if they are stored in a central admin collection)
+    // match /adminInquiries/{inquiryId} {
+    //   allow read, write: if isAdmin();
+    // }
+  }
+}
+
